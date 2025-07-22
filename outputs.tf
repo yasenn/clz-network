@@ -7,5 +7,5 @@ output "k8s_sg_id" {
 }
 
 output "k8s_net_id" {
-  value       = yandex_vpc_network.net.0.id
+  value       = yandex_vpc_network.shared_net.0.id
 }

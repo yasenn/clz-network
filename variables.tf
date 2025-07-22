@@ -2,14 +2,15 @@ variable "zone" {
   type        = string
 }
 
-variable "folder_id" {
+variable "yc_cloud_id" {
+  type        = string
+}
+
+variable "yc_folder_id" {
   type        = string
 }
 
 variable "network_name" {
-  type        = string
-}
-
   type        = string
 }
 

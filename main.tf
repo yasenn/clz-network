@@ -7,22 +7,42 @@ terraform {
   required_version = ">= 0.13"
 }
 
-resource "yandex_vpc_network" "net" {
+# ========
+# Folders
+# ========
+resource "yandex_resourcemanager_folder" "net_folder" {
+  cloud_id = var.yc_cloud_id
+  name     = "net-folder"
+}
+
+resource "yandex_resourcemanager_folder" "folder_b" {
+  cloud_id = var.yc_cloud_id
+  name     = "folderb"
+}
+
+resource "yandex_resourcemanager_folder" "folder_d" {
+  cloud_id = var.yc_cloud_id
+  name     = "folderd"
+}
+
+
+resource "yandex_vpc_network" "shared_net" {
   count       = 1
   name        = var.network_name
-  folder_id   = var.folder_id
+  # folder_id   = var.yc_folder_id # теперь переменная с folder_id определяется при создании ресурса
+  folder_id = yandex_resourcemanager_folder.net_folder.id
 }
 
 resource "yandex_vpc_subnet" "vpc_k8s" {
-  name           = "K8S Zone"
-  network_id     = yandex_vpc_network.net[0].id
+  name           = "k8s_zone"
+  network_id     = yandex_vpc_network.shared_net[0].id
   v4_cidr_blocks = [var.cidr_k8s]
   zone           = var.zone
 }
 
 resource "yandex_vpc_security_group" "regional-k8s-sg" {
   name        = "regional-k8s-sg"
-  network_id  = yandex_vpc_network.net[0].id
+  network_id  = yandex_vpc_network.shared_net[0].id
 
   ingress {
     protocol       = "TCP"
@@ -69,3 +89,33 @@ resource "yandex_vpc_security_group" "regional-k8s-sg" {
     to_port        = 65535
   }
 }
+
+## cross folders subnets
+
+resource "yandex_vpc_subnet" "subnet_net" {
+  folder_id      = yandex_resourcemanager_folder.net_folder.id
+  name           = "subnet-net"
+  description    = "folder subnet - net"
+  v4_cidr_blocks = ["10.1.11.0/24"]
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.shared_net[0].id
+}
+
+resource "yandex_vpc_subnet" "subnet_a" {
+  folder_id      = yandex_resourcemanager_folder.folder_b.id
+  name           = "subnet-b"
+  description    = "folder subnet - b"
+  v4_cidr_blocks = ["10.1.12.0/24"]
+  zone           = "ru-central1-b"
+  network_id     = yandex_vpc_network.shared_net[0].id
+}
+
+resource "yandex_vpc_subnet" "subnet_d" {
+  folder_id      = yandex_resourcemanager_folder.folder_d.id
+  name           = "subnet-d"
+  description    = "folder subnet-d"
+  v4_cidr_blocks = ["10.1.13.0/24"]
+  zone           = "ru-central1-d"
+  network_id     = yandex_vpc_network.shared_net[0].id
+}
+
